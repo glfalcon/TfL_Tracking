@@ -799,15 +799,32 @@ function displayAnalysis(summaries) {
 // CHART (ApexCharts)
 // ============================================================
 let mainChart = null;
+let chartRange = 14; // Default: show last 14 days
+
+function setChartRange(days) {
+    chartRange = days;
+    document.querySelectorAll('.range-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.range || '0') === days);
+    });
+    const summaries = getDailySummaries(journeys);
+    renderChart(summaries);
+    // Also re-render mobile chart if it exists
+    if (typeof renderMobileChart === 'function' && document.getElementById('mobileChart')) {
+        renderMobileChart();
+    }
+}
 
 function renderChart(summaries) {
     const container = document.getElementById('mainChart') || document.getElementById('mobileChart');
     if (!container || summaries.length < 2) return;
 
-    const reversed = [...summaries].reverse();
+    // Apply range filter (summaries are newest-first)
+    const filtered = chartRange === 0 ? summaries : summaries.slice(0, chartRange);
+    const reversed = [...filtered].reverse();
     const labels = reversed.map(s => s.dateShort);
     const costs = reversed.map(s => parseFloat(s.paygCost.toFixed(2)));
-    const colors = reversed.map(s => s.passWorthIt ? '#059669' : '#dc2626');
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const colors = reversed.map(s => s.passWorthIt ? (isDark ? '#34d399' : '#059669') : (isDark ? '#f87171' : '#dc2626'));
 
     if (mainChart) mainChart.destroy();
 
@@ -832,19 +849,19 @@ function renderChart(summaries) {
         xaxis: {
             categories: labels,
             labels: {
-                style: { colors: '#94a3b8', fontSize: '10px' },
+                style: { colors: isDark ? '#64748b' : '#9ca3af', fontSize: '10px' },
                 rotate: -45,
                 rotateAlways: summaries.length > 10,
             },
         },
         yaxis: {
             labels: {
-                style: { colors: '#94a3b8' },
+                style: { colors: isDark ? '#64748b' : '#9ca3af' },
                 formatter: val => '£' + val.toFixed(0),
             }
         },
         grid: {
-            borderColor: '#e5e7eb',
+            borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb',
             strokeDashArray: 4,
         },
         annotations: {
@@ -879,9 +896,38 @@ function renderChart(summaries) {
 }
 
 // ============================================================
+// THEME TOGGLE
+// ============================================================
+function initTheme() {
+    const saved = localStorage.getItem('tfl-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const theme = saved || (prefersDark ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeIcon(theme);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('tfl-theme', next);
+    updateThemeIcon(next);
+
+    // Re-render chart with new theme colors
+    const summaries = getDailySummaries(journeys);
+    renderChart(summaries);
+}
+
+function updateThemeIcon(theme) {
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+// ============================================================
 // APP INIT
 // ============================================================
 function initApp() {
+    initTheme();
     journeys = loadJourneys();
     displayDashboard();
     updateGoogleStatus();
