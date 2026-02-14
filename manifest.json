@@ -1,0 +1,16 @@
+{
+    "name": "TfL Spend & Savings Dashboard",
+    "short_name": "TfL Tracker",
+    "description": "Track London transport spending and compare PAYG costs against your Annual Travelcard",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#f8f9fb",
+    "theme_color": "#003688",
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%23003688'/><rect x='4' y='40' width='92' height='20' rx='3' fill='%23dc241f'/><text x='50' y='57' text-anchor='middle' font-family='Arial' font-weight='800' font-size='18' fill='white'>TfL</text></svg>",
+            "sizes": "any",
+            "type": "image/svg+xml"
+        }
+    ]
+}

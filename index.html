@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TfL Spend & Savings Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script>
+        if (window.innerWidth < 768) {
+            window.location.href = 'mobile.html';
+        }
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fb;
+            min-height: 100vh;
+            color: #1a1a2e;
+            padding: 32px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* Header */
+        .header { margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+
+        .roundel {
+            width: 48px;
+            height: 48px;
+            background: #003688;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .roundel::after {
+            content: '';
+            position: absolute;
+            width: 42px;
+            height: 12px;
+            background: #dc241f;
+            border-radius: 2px;
+        }
+        .roundel span {
+            position: relative;
+            z-index: 2;
+            color: #fff;
+            font-weight: 800;
+            font-size: 0.65em;
+            letter-spacing: 1px;
+        }
+
+        .header-title { font-size: 1.6em; font-weight: 800; color: #1a1a2e; }
+        .header-subtitle { font-size: 0.85em; color: #6b7280; margin-top: 2px; }
+
+        .header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            border: 1px solid #e5e7eb;
+            font-size: 0.85em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            color: #374151;
+            background: #fff;
+            font-family: inherit;
+        }
+        .btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+        .btn-primary { background: #003688; color: #fff; border-color: #003688; }
+        .btn-primary:hover { background: #002a6b; }
+        .btn-success { background: #059669; color: #fff; border-color: #059669; }
+        .btn-success:hover { background: #047857; }
+
+        /* Google status */
+        .google-status {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 24px;
+            font-size: 0.85em;
+        }
+        .google-status .status-info { color: #6b7280; }
+        #lastSyncText { font-size: 0.8em; color: #9ca3af; margin-top: 2px; }
+        .google-btns { display: flex; gap: 8px; }
+
+        /* Import summary */
+        .import-summary {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-bottom: 16px;
+        }
+        .import-summary.success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+        .import-summary.error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+        /* Cards */
+        .card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .card h3 {
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+            margin-bottom: 16px;
+        }
+
+        /* Verdict widget */
+        #verdict { display: none; }
+        .verdict-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .verdict-icon { font-size: 1.8em; }
+        .verdict-title { font-size: 0.95em; font-weight: 600; color: #374151; }
+        .verdict-sub { font-size: 0.78em; color: #9ca3af; margin-top: 2px; }
+
+        .verdict-box {
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+            margin: 16px 0;
+        }
+        .verdict-box.good { background: #ecfdf5; border: 1px solid #a7f3d0; }
+        .verdict-box.warn { background: #fffbeb; border: 1px solid #fde68a; }
+        .verdict-amount { display: block; font-size: 1.4em; font-weight: 800; }
+        .verdict-box.good .verdict-amount { color: #059669; }
+        .verdict-box.warn .verdict-amount { color: #d97706; }
+        .verdict-desc { display: block; font-size: 0.82em; color: #6b7280; margin-top: 6px; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .stats-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 12px; }
+        .stat-box {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid #f3f4f6;
+        }
+        .stat-box.payg { border-color: #dbeafe; background: #eff6ff; }
+        .stat-box.pass { border-color: #e0e7ff; background: #eef2ff; }
+        .stat-label { font-size: 0.65em; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+        .stat-value { font-size: 1.5em; font-weight: 800; margin-top: 4px; }
+        .stat-value.blue { color: #2563eb; }
+        .stat-value.indigo { color: #4f46e5; }
+        .stat-value.green { color: #059669; }
+        .stat-value.red { color: #dc2626; }
+        .stat-value.amber { color: #d97706; }
+        .stat-sub { font-size: 0.65em; color: #9ca3af; margin-top: 2px; }
+
+        /* Cap meter */
+        .cap-container { display: flex; flex-direction: column; align-items: center; }
+        .cap-ring { position: relative; width: 192px; height: 192px; margin-bottom: 16px; }
+        .cap-ring svg { transform: rotate(-90deg); }
+        .cap-bg { stroke: #f3f4f6; }
+        .cap-progress { stroke: #2563eb; transition: all 0.5s; }
+        .cap-progress.capped { stroke: #059669; filter: drop-shadow(0 0 12px rgba(5,150,105,0.3)); }
+        .cap-center {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .cap-amount { font-size: 2em; font-weight: 800; color: #1a1a2e; }
+        .cap-label { font-size: 0.8em; color: #9ca3af; }
+        .cap-status {
+            text-align: center;
+            padding: 12px 20px;
+            border-radius: 10px;
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            color: #2563eb;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .cap-status.capped {
+            background: #ecfdf5;
+            border-color: #a7f3d0;
+            color: #059669;
+            font-weight: 700;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        /* Two-column layout */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .full-width { grid-column: 1 / -1; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #f3f4f6; padding: 4px; border-radius: 12px; }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            background: transparent;
+            color: #6b7280;
+            font-size: 0.85em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+            font-family: inherit;
+        }
+        .tab-btn.active {
+            background: #fff;
+            color: #1a1a2e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Journey rows */
+        .journey-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: #f9fafb;
+            margin-bottom: 8px;
+            transition: background 0.15s;
+            border: 1px solid transparent;
+        }
+        .journey-row:hover { background: #f3f4f6; border-color: #e5e7eb; }
+        .journey-row.compact { padding: 8px 12px; }
+        .journey-left { display: flex; align-items: center; gap: 12px; }
+        .journey-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1em;
+        }
+        .journey-icon.bus-icon { background: #ecfdf5; }
+        .journey-icon.tube-icon { background: #eff6ff; }
+        .journey-row.compact .journey-icon { width: 28px; height: 28px; font-size: 0.85em; border-radius: 8px; }
+        .journey-desc { font-weight: 500; font-size: 0.9em; color: #1a1a2e; }
+        .journey-row.compact .journey-desc { font-size: 0.82em; }
+        .journey-time { font-size: 0.75em; color: #9ca3af; display: flex; align-items: center; gap: 6px; }
+        .journey-right { display: flex; align-items: center; gap: 12px; }
+        .journey-cost { font-weight: 700; color: #1a1a2e; }
+        .journey-row.compact .journey-cost { font-size: 0.88em; }
+        .delete-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: opacity 0.15s;
+            font-size: 0.85em;
+        }
+        .delete-btn:hover { opacity: 1; }
+
+        .tag { font-size: 0.65em; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+        .tag.csv { background: #eef2ff; color: #4f46e5; }
+
+        /* Day groups (history) */
+        .day-group { margin-bottom: 20px; }
+        .day-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .day-date { font-weight: 600; color: #374151; font-size: 0.9em; }
+        .day-meta { display: flex; align-items: center; gap: 8px; }
+        .day-cost { font-weight: 700; font-size: 0.9em; color: #1a1a2e; }
+        .day-journeys { padding-left: 24px; }
+        .cap-note { font-size: 0.72em; color: #059669; font-weight: 500; }
+
+        .badge {
+            font-size: 0.7em;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+        .badge.good { background: #ecfdf5; color: #059669; }
+        .badge.warn { background: #fffbeb; color: #d97706; }
+
+        /* Analysis rows */
+        .analysis-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+        }
+        .analysis-row.good { background: #f0fdf4; border: 1px solid #bbf7d0; }
+        .analysis-row.warn { background: #fffbeb; border: 1px solid #fde68a; }
+        .analysis-left { display: flex; align-items: center; gap: 12px; }
+        .analysis-icon { font-size: 1.1em; }
+        .analysis-date { font-weight: 600; font-size: 0.88em; color: #1a1a2e; }
+        .analysis-sub { font-size: 0.72em; color: #6b7280; }
+        .analysis-right { text-align: right; }
+        .analysis-cost { font-weight: 800; }
+        .analysis-cost.good { color: #059669; }
+        .analysis-cost.warn { color: #d97706; }
+        .analysis-vs { font-size: 0.72em; color: #9ca3af; }
+        .analysis-cap { font-size: 0.72em; color: #2563eb; }
+
+        /* Chart */
+        .chart-container { min-height: 350px; }
+        .chart-legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 12px;
+            font-size: 0.8em;
+            color: #6b7280;
+        }
+        .legend-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .legend-line {
+            display: inline-block;
+            width: 20px;
+            height: 0;
+            border-top: 2px dashed #d97706;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+        }
+        .empty-state small { font-size: 0.85em; color: #d1d5db; }
+
+        /* FAB */
+        .fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: #003688;
+            color: #fff;
+            border: none;
+            font-size: 1.8em;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,54,136,0.3);
+            transition: transform 0.15s;
+            z-index: 50;
+        }
+        .fab:hover { transform: scale(1.05); }
+        .fab:active { transform: scale(0.95); }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(4px);
+            justify-content: center;
+            align-items: flex-end;
+            z-index: 100;
+            padding: 16px;
+        }
+        .modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 420px;
+            animation: slideUp 0.3s ease;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal h3 { font-size: 1.1em; font-weight: 700; margin-bottom: 16px; color: #1a1a2e; }
+        .modal-option {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            color: #1a1a2e;
+            cursor: pointer;
+            margin-bottom: 10px;
+            transition: all 0.15s;
+            font-size: 0.95em;
+            text-align: left;
+            font-family: inherit;
+        }
+        .modal-option:hover { background: #f9fafb; border-color: #d1d5db; }
+        .modal-option .opt-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3em;
+        }
+        .modal-option .opt-label { font-weight: 600; }
+        .modal-option .opt-sub { font-size: 0.78em; color: #9ca3af; }
+        .modal-option.bus .opt-icon { background: #ecfdf5; }
+        .modal-option.bus .opt-label { color: #059669; }
+        .modal-option.peak .opt-icon { background: #fef2f2; }
+        .modal-option.peak .opt-label { color: #dc2626; }
+        .modal-option.offpeak .opt-icon { background: #eff6ff; }
+        .modal-option.offpeak .opt-label { color: #2563eb; }
+        .modal-cancel {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: #f3f4f6;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-family: inherit;
+            margin-top: 4px;
+        }
+
+        /* Scrollable panels */
+        .scroll-panel { max-height: 600px; overflow-y: auto; }
+
+        @media (max-width: 1024px) {
+            .main-grid { grid-template-columns: 1fr; }
+            .stats-grid-4 { grid-template-columns: 1fr 1fr; }
+        }
+
+        .hidden-input { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-left">
+                <div class="roundel"><span>TfL</span></div>
+                <div>
+                    <div class="header-title">Spend & Savings Dashboard</div>
+                    <div class="header-subtitle">Zone 1–2 Annual Travelcard vs Pay As You Go</div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <input type="file" id="csvInput" class="hidden-input" accept=".csv" onchange="handleCSVImport(event)">
+                <button class="btn" onclick="document.getElementById('csvInput').click()">📥 Import CSV</button>
+                <button class="btn" onclick="exportCSV()">📤 Export</button>
+            </div>
+        </div>
+
+        <div class="google-status">
+            <div class="status-info">
+                <div id="statusText">Not connected to Google Sheets</div>
+                <div id="lastSyncText"></div>
+            </div>
+            <div class="google-btns">
+                <button class="btn btn-success" id="syncBtn" onclick="syncData()" style="display:none">🔄 Sync</button>
+                <button class="btn btn-primary" id="connectBtn" onclick="authorizeGoogle()">Connect Sheets</button>
+            </div>
+        </div>
+
+        <div id="importSummary" class="import-summary"></div>
+
+        <!-- Verdict Card -->
+        <div id="verdict" class="card full-width">
+            <div class="verdict-header">
+                <div>
+                    <div id="verdictTitle" class="verdict-title"></div>
+                    <div id="verdictSub" class="verdict-sub"></div>
+                </div>
+                <span id="verdictIcon" class="verdict-icon"></span>
+            </div>
+            <div id="verdictBox" class="verdict-box"></div>
+            <div class="stats-grid">
+                <div class="stat-box payg">
+                    <div class="stat-label">What PAYG Would Cost</div>
+                    <div class="stat-value blue" id="statPayg">£0.00</div>
+                    <div class="stat-sub" id="statPaygDays">0 travel days</div>
+                </div>
+                <div class="stat-box pass">
+                    <div class="stat-label">Annual Pass Cost</div>
+                    <div class="stat-value indigo" id="statPass">£0.00</div>
+                    <div class="stat-sub" id="statPassDays">0 calendar days</div>
+                </div>
+            </div>
+            <div class="stats-grid-4">
+                <div class="stat-box">
+                    <div class="stat-label">Pass Worth It</div>
+                    <div class="stat-value green" id="statPassWin">0</div>
+                    <div class="stat-sub">PAYG &gt; £4.91</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">PAYG Cheaper</div>
+                    <div class="stat-value red" id="statPaygWin">0</div>
+                    <div class="stat-sub">PAYG ≤ £4.91</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">No Travel Days</div>
+                    <div class="stat-value amber" id="statNoTravel">0</div>
+                    <div class="stat-sub" id="statNoTravelCost">£0.00 wasted</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-label">Total Journeys</div>
+                    <div class="stat-value" id="statTotalJourneys">0</div>
+                    <div class="stat-sub" id="statTotalJourneysSub">across 0 days</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Left: Cap meter -->
+            <div class="card">
+                <h3>Today's Cap Meter</h3>
+                <div class="cap-container">
+                    <div class="cap-ring">
+                        <svg width="192" height="192">
+                            <circle cx="96" cy="96" r="88" stroke-width="12" fill="none" class="cap-bg" />
+                            <circle id="capCircle" cx="96" cy="96" r="88" stroke-width="12" fill="none" stroke-linecap="round" class="cap-progress" />
+                        </svg>
+                        <div class="cap-center">
+                            <div id="capAmount" class="cap-amount">£0.00</div>
+                            <div class="cap-label">of £8.90</div>
+                        </div>
+                    </div>
+                    <div id="capStatus" class="cap-status">£8.90 until cap</div>
+                </div>
+            </div>
+
+            <!-- Right: Chart -->
+            <div class="card">
+                <h3>Daily PAYG Cost vs Annual Pass</h3>
+                <div id="mainChart" class="chart-container"></div>
+                <div class="chart-legend">
+                    <span><span class="legend-dot" style="background:#059669"></span>Pass saved you money</span>
+                    <span><span class="legend-dot" style="background:#dc2626"></span>PAYG would be cheaper</span>
+                    <span><span class="legend-line"></span>Pass: £4.91/day</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('today', this)">Today's Journeys</button>
+            <button class="tab-btn" onclick="switchTab('history', this)">Journey History</button>
+            <button class="tab-btn" onclick="switchTab('analysis', this)">Daily Analysis</button>
+        </div>
+
+        <div id="tab-today" class="tab-content active">
+            <div class="card">
+                <h3>Today's Journeys</h3>
+                <div id="todayList"></div>
+            </div>
+        </div>
+
+        <div id="tab-history" class="tab-content">
+            <div class="card">
+                <h3>Journey History</h3>
+                <div id="historyList" class="scroll-panel"></div>
+            </div>
+        </div>
+
+        <div id="tab-analysis" class="tab-content">
+            <div class="card">
+                <h3>Daily Breakdown</h3>
+                <div id="analysisList" class="scroll-panel"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAB -->
+    <button class="fab" onclick="openModal()">+</button>
+
+    <!-- Journey Modal -->
+    <div id="journeyModal" class="modal-overlay" onclick="closeModal()">
+        <div class="modal" onclick="event.stopPropagation()">
+            <h3>Log Journey</h3>
+            <button class="modal-option bus" onclick="addJourney('bus')">
+                <span class="opt-icon">🚌</span>
+                <div><div class="opt-label">Bus</div><div class="opt-sub">£1.75 · Hopper eligible</div></div>
+            </button>
+            <button class="modal-option peak" onclick="addJourney('tube-peak')">
+                <span class="opt-icon">🚇</span>
+                <div><div class="opt-label">Underground (Peak)</div><div class="opt-sub">£3.10 · Weekday 6:30–9:30, 16:00–19:00</div></div>
+            </button>
+            <button class="modal-option offpeak" onclick="addJourney('tube-offpeak')">
+                <span class="opt-icon">🚇</span>
+                <div><div class="opt-label">Underground (Off-Peak)</div><div class="opt-sub">£3.00 · All other times</div></div>
+            </button>
+            <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.45.1/dist/apexcharts.min.js"></script>
+    <script src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script src="https://accounts.google.com/gsi/client" onload="gisLoaded()" async defer></script>
+    <script src="app.js"></script>
+    <script>
+        function switchTab(tab, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            btn.classList.add('active');
+        }
+    </script>
+</body>
+</html>
